@@ -8,33 +8,44 @@ import { ITask } from "../models/task/task-model";
  * @returns {Promise<ITask>}
  */
 const create = async (taskEntity: TaskEntity): Promise<ITask> => {
+  console.log("taskEntity", taskEntity);
+
   const task = new TASK(taskEntity);
   return await task.save();
 };
 
 /**
  * Get a single task based on query
- * @param {Object} query
+ * @param {string} userId
+ * @param {string} task
  * @returns {Promise<ITask | null>}
  */
-const getTaskSingle = async (query: object): Promise<ITask | null> => {
-  return await TASK.findOne(query).exec();
+const getTaskSingle = async (
+  userId: string,
+  task: string
+): Promise<ITask | null> => {
+  return await TASK.findOne({ userId, name: task }).exec();
 };
 
 /**
  * Update a task
  * @param {String} taskId
  * @param {Partial<TaskEntity>} updatedFields
- * @returns {Promise<ITask>}
+ * @returns {Promise<ITask | null>}
  */
 const update = async (
   taskId: string,
   updatedFields: Partial<TaskEntity>
-): Promise<ITask> => {
-  const task = await TASK.findByIdAndUpdate(taskId, updatedFields, {
-    new: true,
-  }).exec();
-  return task as ITask;
+): Promise<ITask | null> => {
+  const task = await TASK.findByIdAndUpdate(
+    taskId, // Pass the taskId directly
+    { $set: updatedFields }, // Use the $set operator to update fields
+    {
+      new: true, // Return the updated document
+    }
+  ).exec();
+
+  return task;
 };
 
 /**
@@ -63,7 +74,7 @@ const getAllTasks = async (
 ): Promise<ITask[]> => {
   const query = {
     createdUser: userId,
-    task: new RegExp(searchTag, "i"),
+    name: new RegExp(searchTag, "i"),
     documentStatus: true,
   };
   return await TASK.find(query).skip(skip).limit(limit).exec();
@@ -81,7 +92,7 @@ const getAllTaskCount = async (
 ): Promise<number> => {
   const query = {
     createdUser: userId,
-    task: new RegExp(searchTag, "i"),
+    name: new RegExp(searchTag, "i"),
     documentStatus: true,
   };
   return await TASK.countDocuments(query).exec();

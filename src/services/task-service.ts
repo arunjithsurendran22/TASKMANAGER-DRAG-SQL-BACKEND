@@ -11,13 +11,13 @@ import TaskEntity from "../entities/task-enitity";
  * @returns {Promise<ITask>}
  */
 const createTask = async (
-  task: string,
+  name: string,
   createdUser: string,
   status: "pending" | "completed" | "in-progress" = "pending" // Default to "pending"
 ): Promise<ITask> => {
   const taskEntity = new TaskEntity(
     new Types.ObjectId(),
-    task,
+    name,
     status,
     new Types.ObjectId(createdUser),
     new Date(),
@@ -32,26 +32,26 @@ const createTask = async (
 
 /**
  * Get a task by its title
+ * @param {string} userId
  * @param {string} task
  * @returns {Promise<ITask | null>}
  */
-const getTaskByTitle = async (task: string): Promise<ITask | null> => {
-  const existData = await taskRepository.getTaskSingle({ task });
-  return existData;
+const getTaskByTitle = async (userId: string, task: string): Promise<ITask | null> => {
+  return await taskRepository.getTaskSingle(userId, task);
 };
 
 /**
  * Update a task
  * @param {String} taskId
- *  @param {String} userId
  * @param {Partial<TaskEntity>} updatedFields
- * @returns {Promise<ITask>}
+ * @returns {Promise<ITask | null>}
  */
 const updateTask = async (
   taskId: string,
   updatedFields: Partial<TaskEntity>
-): Promise<ITask> => {
+): Promise<ITask | null> => {
   const updatedTask = await taskRepository.update(taskId, updatedFields);
+
   return updatedTask;
 };
 

@@ -23,7 +23,7 @@ const createTask = async (
       return next(new ERROR.AuthorizationError("Unauthorized"));
     }
     // Check if a task with the same title already exists
-    const existingTask = await taskService.getTaskByTitle(name);
+    const existingTask = await taskService.getTaskByTitle(userId,name);
     if (existingTask) {
       return next(
         new ERROR.DocumentExistsError("Task with this title already exists.")
@@ -62,7 +62,7 @@ const updateTask = async (
       return next(new ERROR.AuthorizationError("Unauthorized"));
     }
 
-    const updatedTask: ITask = await taskService.updateTask(taskId, {
+    const updatedTask: any = await taskService.updateTask(taskId, {
       name,
     });
 

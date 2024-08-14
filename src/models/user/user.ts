@@ -21,6 +21,6 @@ userSchema.pre<IUser>('save', function (next) {
   next();
 });
 
-const USER: Model<IUser> = model<IUser>('cln_users', userSchema);
+const USER: Model<IUser> = model<IUser>('USERS', userSchema);
 
 export default USER;

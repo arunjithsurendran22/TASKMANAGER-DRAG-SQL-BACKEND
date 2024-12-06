@@ -3,9 +3,11 @@ import authController from '../../../controllers/auth-controller';
 import { verifyUser } from '../../../middlewares/auth/verify-user';
 
 const authRouter = (router: Router) => {
-  router.route('/user-login').post(authController.authenticateUser);
-  router.route('/log-out').post(verifyUser, authController.logOutUser);
-  router.route('/refresh-tokens').post(authController.refreshTokens);
+
+  router.route('/login').post(authController.authenticateUser);
+  router.route('/logout').post(verifyUser, authController.logOutUser);
+  router.route('/register').post(authController.registerUser);
+
   return router;
 };
 

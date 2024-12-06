@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Example model
+model User {
+  id             Int     @id @default(autoincrement())
+  email          String  @unique
+  name           String
+  password       String
+  documentStatus Boolean   @default(true)                 // Active status by default
+  createdUserId  Int?      // Foreign key reference to the User who created this user
+  createdAt      DateTime  @default(now())                // Creation timestamp
+  updatedUserId  Int?      // Foreign key reference to the User who last updated this user
+  updatedAt      DateTime  @updatedAt                    // Automatic update timestamp
+  tasks          Task[]   @relation("UserTasks")
+}
+
+model Task {
+  id             Int      @id @default(autoincrement())
+  title          String   // Title of the task
+  description    String?  // Description of the task (optional)
+  rank           Int?     // Rank of the task (optional)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  userId         Int      // Foreign key to User
+  user           User     @relation("UserTasks", fields: [userId], references: [id]) // Relation to User
+
+  @@index([userId]) // Index for userId for faster queries
+}

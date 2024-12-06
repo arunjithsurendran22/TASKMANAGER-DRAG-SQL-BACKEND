@@ -1,42 +1,42 @@
 import { Request, Response, NextFunction } from 'express';
 import { IUser } from '../models/user/user-model';
 import ApiResponse from '../utils/api-response';
-import { authService, tokenService, fcmTokenService } from '../services';
+import { authService } from '../services';
 
-/*----------------------------------------------------------------------------------*/
 /**
- * Authenticate user (login or signup)
+ * Authenticate user (login)
  * @param { Request } req
  * @param { Response } res
  * @param { NextFunction } next
  */
 const authenticateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-   
-    const obj = req.body;
-    let fcmToken: string = '';
-    if (req.headers['fcm-token']) fcmToken = req.headers['fcm-token'] as string;
-    
+    const { email, password } = req.body; // Only email and password for login
+
     // Authenticate user
-    const userData: IUser = await authService.authUser(obj);
-    
-    // Generate token
-    const tokenData = await tokenService.generateAuthTokens(userData);
-    
-    // Save FCM token
-    if (fcmToken) fcmTokenService.saveFCMToken(userData._id.toString(), fcmToken);
-    
-    // Send response
-    const apiResponse: ApiResponse<{ user: IUser; tokens: any }> = new ApiResponse<{ user: IUser; tokens: any }>();
-    apiResponse.message = 'Success!';
-    apiResponse.data = { user: userData, tokens: tokenData };
+    const userData: IUser | null = await authService.authUser({ email, password });
+
+    if (!userData) {
+      const apiResponse: ApiResponse<{}> = new ApiResponse<{}>();
+      apiResponse.message = 'Invalid email or password!';
+      apiResponse.statusCode = 401;
+      res.status(401).json(apiResponse);
+      return;
+    }
+
+    // Generate access token
+    const tokenData = await authService.generateAuthToken(userData);
+
+    const apiResponse: ApiResponse<{ user: IUser; token: string }> = new ApiResponse<{ user: IUser; token: string }>();
+    apiResponse.message = 'Login successful!';
+    apiResponse.data = { user: userData, token: tokenData };
     apiResponse.statusCode = 200;
     res.json(apiResponse);
   } catch (e) {
     next(e);
   }
 };
-/*----------------------------------------------------------------------------------*/
+
 /**
  * Log out user
  * @param { Request } req
@@ -45,9 +45,8 @@ const authenticateUser = async (req: Request, res: Response, next: NextFunction)
  */
 const logOutUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await authService.logOut(req.body.refreshToken);
     const apiResponse: ApiResponse<{}> = new ApiResponse<{}>();
-    apiResponse.message = 'Success!';
+    apiResponse.message = 'Logout successful!';
     apiResponse.data = {};
     apiResponse.statusCode = 200;
     res.json(apiResponse);
@@ -55,28 +54,35 @@ const logOutUser = async (req: Request, res: Response, next: NextFunction): Prom
     next(e);
   }
 };
-/*----------------------------------------------------------------------------------*/
+
 /**
- * Refresh token
- * @param req
- * @param res
- * @param next
+ * Register user
+ * @param { Request } req
+ * @param { Response } res
+ * @param { NextFunction } next
  */
-const refreshTokens = async (req: Request, res: Response, next: NextFunction) => {
+const registerUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const tokens = await authService.refreshToken(req.body.refreshToken);
-    const apiResponse: ApiResponse<{ tokens: any }> = new ApiResponse<{ tokens: any }>();
-    apiResponse.message = 'Success!';
-    apiResponse.data = { tokens: tokens };
-    apiResponse.statusCode = 200;
+    const { email, password, name } = req.body;  // Only email, password, and name
+
+    // Create a new user
+    const newUser: IUser = await authService.createUser({ email, password, name });
+
+    // Generate token for the newly created user
+    const tokenData = await authService.generateAuthToken(newUser);
+
+    const apiResponse: ApiResponse<{ user: IUser; token: string }> = new ApiResponse<{ user: IUser; token: string }>();
+    apiResponse.message = 'Registration successful!';
+    apiResponse.data = { user: newUser, token: tokenData };
+    apiResponse.statusCode = 201;
     res.json(apiResponse);
   } catch (e) {
     next(e);
   }
 };
-/*----------------------------------------------------------------------------------*/
+
 export default {
   authenticateUser,
   logOutUser,
-  refreshTokens,
+  registerUser,
 };

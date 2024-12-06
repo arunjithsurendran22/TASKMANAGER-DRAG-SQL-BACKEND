@@ -1,86 +1,72 @@
-import UserEntity from '../entities/user-entity';
-import config from '../config/config';
-import ERROR from '../middlewares/web_server/http-error';
-import tokenService from '../services/token-service';
-import { userRepository, tokenRepository } from '../repositories';
+import { authRepository } from '../repositories';
 import { IUser } from '../models/user/user-model';
+import ERROR from '../middlewares/web_server/http-error';
+import argon2 from 'argon2';
+import tokenService from './token-service'; // For generating tokens
 
-/*----------------------------------------------------------------------------------*/
 /**
- * Handle user authentication.
- * Sign up for new users and login for existing users.
+ * Handle user authentication (login).
  * @param { any } obj
  */
-const authUser = async (obj: any) => {
-  const findUser: IUser | null = await userRepository.loginUser(obj.countryCode, obj.mobileNumber);
-  if (findUser && findUser._id) {
-    // User login
-    return findUser;
-  } else {
-    // User sign-up
-    const newUser: IUser = await signUpUser(
-      obj.name || "", // Optional name
-      obj.countryCode,
-      obj.mobileNumber,
-      obj.email || "", // Optional email
-    );
-    return newUser;
+const authUser = async (obj: { email: string, password: string }) => {
+  const findUser: IUser | null = await authRepository.loginUser(obj.email);
+  
+  if (!findUser) {
+    throw new ERROR.NotFoundError('User not found!');
   }
+
+  // Verify password using argon2
+  const isPasswordValid = await argon2.verify(findUser.password, obj.password);
+  if (!isPasswordValid) {
+    throw new ERROR.UnauthorizedError('Invalid credentials!');
+  }
+
+  return findUser;
 };
-/*----------------------------------------------------------------------------------*/
+
 /**
- * Logout user
- * @param { string } refreshToken
+ * Generate authentication token (access token)
+ * @param { IUser } userData
+ * @returns { Promise<string> }
  */
-const logOut = async (refreshToken: string) => {
-  await tokenRepository.findTokenAndRemove(refreshToken, config.tokenTypes.REFRESH);
+const generateAuthToken = async (userData: IUser): Promise<string> => {
+  const accessToken = await tokenService.generateAccessToken(userData);
+  return accessToken;
 };
 
 /**
- * Refresh access and refresh token
- * @param { String }refreshToken
+ * Register a new user
+ * @param { { email: string, password: string, name: string } } userData
+ * @returns { Promise<IUser> }
  */
-const refreshToken = async (refreshToken: string) => {
-  const tokenData = await tokenRepository.findToken(refreshToken, config.tokenTypes.REFRESH);
-  const userData = await userRepository.findUserById(tokenData.user);
+const createUser = async (userData: { email: string, password: string, name: string }) => {
+  const existingUser = await authRepository.findUserByEmail(userData.email);
 
-  if (!userData) throw new ERROR.NotFoundError('User not found!');
+  if (existingUser) {
+    throw new ERROR.BadRequestError('User already exists with this email!');
+  }
 
-  await tokenRepository.removeToken(tokenData._id);
-  return await tokenService.generateAuthTokens(userData);
-};
-/*----------------------------------------------------------------------------------*/
-/**
- * User sign-up
- * @param { string } name
- * @param { string } countryCode
- * @param { string } mobileNumber
- * @param { string } email
- */
-const signUpUser = async (
-  name: string,
-  countryCode: string,
-  mobileNumber: string,
-  email: string,
-) => {
-  const userEntity: UserEntity = new UserEntity(
-    true, // documentStatus
-    name,
-    email,
-    countryCode,
-    mobileNumber,
-    [], // fcmTokens
-    null, // createdUser
-    new Date(), // createdAt
-    null, // updatedUser
-    new Date(), // updatedAt
-  );
+  // Hash password using argon2
+  const hashedPassword = await argon2.hash(userData.password);
 
-  return await userRepository.createNewUser(userEntity);
+  // Create and save the new user
+  const newUser: IUser = await authRepository.createNewUser({
+    id: 0,
+    name: userData.name,
+    email: userData.email,
+    password: hashedPassword,
+    documentStatus: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdUserId: null,
+    updatedUserId: null
+  });
+
+  return newUser;
 };
 
 export default {
   authUser,
-  logOut,
-  refreshToken,
+  generateAuthToken,
+  createUser,
 };

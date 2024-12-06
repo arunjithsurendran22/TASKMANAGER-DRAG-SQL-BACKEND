@@ -1,119 +1,131 @@
-import TaskEntity from "../entities/task-enitity";
-import TASK from "../models/task/task";
-import { ITask } from "../models/task/task-model";
+import { PrismaClient } from '@prisma/client';
+import { ITask } from '../models/task/task-model';
+
+const prisma = new PrismaClient();
 
 /**
- * Create a new task
- * @param {TaskEntity} taskEntity
+ * Create a task
+ * @param {any} taskEntity
  * @returns {Promise<ITask>}
  */
-const create = async (taskEntity: TaskEntity): Promise<ITask> => {
-  console.log("taskEntity", taskEntity);
-
-  const task = new TASK(taskEntity);
-  return await task.save();
+const create = async (taskEntity: any): Promise<ITask> => {
+  return await prisma.task.create({
+    data: taskEntity,
+  });
 };
 
 /**
- * Get a single task based on query
+ * Get task by title
  * @param {string} userId
- * @param {string} task
+ * @param {string} title
  * @returns {Promise<ITask | null>}
  */
 const getTaskSingle = async (
   userId: string,
-  task: string
+  title: string
 ): Promise<ITask | null> => {
-  return await TASK.findOne({ userId, name: task }).exec();
+  return await prisma.task.findFirst({
+    where: {
+      userId: parseInt(userId),
+      title: title,
+      
+    },
+  });
 };
 
 /**
  * Update a task
- * @param {String} taskId
- * @param {Partial<TaskEntity>} updatedFields
+ * @param {string} taskId
+ * @param {Partial<ITask>} updatedFields
  * @returns {Promise<ITask | null>}
  */
 const update = async (
   taskId: string,
-  updatedFields: Partial<TaskEntity>
+  updatedFields: Partial<ITask>
 ): Promise<ITask | null> => {
-  const task = await TASK.findByIdAndUpdate(
-    taskId, // Pass the taskId directly
-    { $set: updatedFields }, // Use the $set operator to update fields
-    {
-      new: true, // Return the updated document
-    }
-  ).exec();
-
-  return task;
+  return await prisma.task.update({
+    where: {
+      id: parseInt(taskId),
+    },
+    data: updatedFields,
+  });
 };
 
 /**
  * Delete a task
- * @param {String} userId
- * @param {String} taskId
+ * @param {string} userId
+ * @param {string} taskId
  * @returns {Promise<void>}
  */
 const deleteTask = async (userId: string, taskId: string): Promise<void> => {
-  await TASK.findByIdAndDelete(taskId).exec();
+  await prisma.task.delete({
+    where: {
+      id: parseInt(taskId),
+    },
+  });
 };
 
 /**
  * Get all tasks with pagination
  * @param {string} userId
  * @param {number} skip
- * @param {number} limit
+ * @param {number} take
  * @param {string} searchTag
  * @returns {Promise<ITask[]>}
  */
 const getAllTasks = async (
   userId: string,
   skip: number,
-  limit: number,
+  take: number,
   searchTag: string
 ): Promise<ITask[]> => {
-  const query = {
-    createdUser: userId,
-    name: new RegExp(searchTag, "i"),
-    documentStatus: true,
-  };
-  return await TASK.find(query).skip(skip).limit(limit).exec();
+  return await prisma.task.findMany({
+    where: {
+      userId: parseInt(userId),
+      title: {
+        contains: searchTag,
+      },
+    },
+    skip,
+    take,
+  });
 };
 
 /**
- * Get the count of all tasks based on search
+ * Get task count
  * @param {string} userId
  * @param {string} searchTag
  * @returns {Promise<number>}
  */
-const getAllTaskCount = async (
-  userId: string,
-  searchTag: string
-): Promise<number> => {
-  const query = {
-    createdUser: userId,
-    name: new RegExp(searchTag, "i"),
-    documentStatus: true,
-  };
-  return await TASK.countDocuments(query).exec();
+const getAllTaskCount = async (userId: string, searchTag: string): Promise<number> => {
+  return await prisma.task.count({
+    where: {
+      userId: parseInt(userId),
+      title: {
+        contains: searchTag,
+      },
+    },
+  });
 };
 
 /**
- * Update a task's status
- * @param {string} taskId - The ID of the task to update
- * @param {"pending" | "completed" | "in-progress"} newStatus - The new status
- * @returns {Promise<ITask | null>} - The updated task or null if not found
+ * Update a task's rank
+ * @param {string} taskId
+ * @param {number} rank
+ * @returns {Promise<ITask | null>}
  */
-const updateStatus = async (
+const updateRank = async (
   taskId: string,
-  newStatus: "pending" | "completed" | "in-progress"
+  rank: number
 ): Promise<ITask | null> => {
-  const updatedTask = await TASK.findByIdAndUpdate(
-    { _id: taskId },
-    { status: newStatus, updatedAt: new Date() },
-    { new: true } // Return the updated document
-  ).exec();
-  return updatedTask;
+  return await prisma.task.update({
+    where: {
+      id: parseInt(taskId),
+    },
+    data: {
+      rank,
+    },
+  });
 };
 
 export default {
@@ -123,5 +135,5 @@ export default {
   deleteTask,
   getAllTasks,
   getAllTaskCount,
-  updateStatus,
+  updateRank,
 };

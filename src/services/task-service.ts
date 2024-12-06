@@ -1,30 +1,28 @@
-import { Types } from "mongoose";
-import { ITask } from "../models/task/task-model";
-import { taskRepository } from "../repositories";
-import TaskEntity from "../entities/task-enitity";
+import { PrismaClient } from '@prisma/client';
+import { ITask } from '../models/task/task-model';
+import { taskRepository } from '../repositories';
+
+const prisma = new PrismaClient();
 
 /**
  * Create a task
- * @param {string} task
+ * @param {string} title
+ * @param {string} description
  * @param {string} createdUser
- * @param {"pending" | "completed" | "in-progress"} [status="pending"] // Default parameter
  * @returns {Promise<ITask>}
  */
 const createTask = async (
-  name: string,
-  createdUser: string,
-  status: "pending" | "completed" | "in-progress" = "pending" // Default to "pending"
+  title: string,
+  description: string,
+  userId: string
 ): Promise<ITask> => {
-  const taskEntity = new TaskEntity(
-    new Types.ObjectId(),
-    name,
-    status,
-    new Types.ObjectId(createdUser),
-    new Date(),
-    null,
-    new Date(),
-    true
-  );
+  const taskEntity = {
+    title,
+    description,
+    userId: parseInt(userId),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   const createdTask = await taskRepository.create(taskEntity);
   return createdTask;
@@ -33,25 +31,24 @@ const createTask = async (
 /**
  * Get a task by its title
  * @param {string} userId
- * @param {string} task
+ * @param {string} title
  * @returns {Promise<ITask | null>}
  */
-const getTaskByTitle = async (userId: string, task: string): Promise<ITask | null> => {
-  return await taskRepository.getTaskSingle(userId, task);
+const getTaskByTitle = async (userId: string, title: string): Promise<ITask | null> => {
+  return await taskRepository.getTaskSingle(userId, title);
 };
 
 /**
  * Update a task
  * @param {String} taskId
- * @param {Partial<TaskEntity>} updatedFields
+ * @param {Partial<ITask>} updatedFields
  * @returns {Promise<ITask | null>}
  */
 const updateTask = async (
   taskId: string,
-  updatedFields: Partial<TaskEntity>
+  updatedFields: Partial<ITask>
 ): Promise<ITask | null> => {
   const updatedTask = await taskRepository.update(taskId, updatedFields);
-
   return updatedTask;
 };
 
@@ -88,25 +85,18 @@ const getAllTasks = async (
 };
 
 /**
- * Update a task's status
+ * Update a task's rank
  * @param {string} taskId - The ID of the task to update
- * @param {"pending" | "completed" | "in-progress"} newStatus - The new status
+ * @param {number} rank - The new rank
  * @returns {Promise<ITask | null>} - The updated task or null if not found
  */
-const updateStatus = async (
+const updateRank = async (
   taskId: string,
-  newStatus: "pending" | "completed" | "in-progress"
+  rank: number
 ): Promise<ITask | null> => {
-  // Ensure newStatus is one of the allowed values
-  const validStatuses: Array<"pending" | "completed" | "in-progress"> = ["pending", "completed", "in-progress"];
-  if (!validStatuses.includes(newStatus)) {
-    throw new Error("Invalid status value");
-  }
-
-  const updatedTask = await taskRepository.updateStatus(taskId, newStatus);
+  const updatedTask = await taskRepository.updateRank(taskId, rank);
   return updatedTask;
 };
-
 
 export default {
   createTask,
@@ -114,5 +104,5 @@ export default {
   updateTask,
   deleteTask,
   getAllTasks,
-  updateStatus,
+  updateRank,
 };

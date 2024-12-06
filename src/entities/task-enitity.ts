@@ -1,31 +1,32 @@
-import { Types } from "mongoose";
-
 class TaskEntity {
-  public _id: Types.ObjectId;
-  public name: string;
-  public status: "pending" | "completed" | "in-progress";
-  public createdUser: Types.ObjectId | null;
-  public createdAt: Date | null;
-  public updatedUser: Types.ObjectId | null;
-  public updatedAt: Date | null;
-  public documentStatus: boolean;
+  public id: number; // Auto-incrementing primary key
+  public title: string; // Title of the task
+  public description?: string; // Description of the task (optional)
+  public rank?: number; // Rank of the task (optional)
+  public createdUserId: number; // Foreign key to the User who created the task
+  public createdAt: Date; // Creation timestamp
+  public updatedUserId: number | null; // Foreign key to the User who last updated the task (nullable)
+  public updatedAt: Date; // Automatic update timestamp
+  public documentStatus: boolean; // Active status of the task
 
   constructor(
-    _id: Types.ObjectId,
-    name: string,
-    status: "pending" | "completed" | "in-progress" ,
-    createdUser: Types.ObjectId | null,
-    createdAt: Date | null,
-    updatedUser: Types.ObjectId | null,
-    updatedAt: Date | null,
+    id: number,
+    title: string,
+    description: string | undefined,
+    rank: number | undefined,
+    createdUserId: number,
+    createdAt: Date,
+    updatedUserId: number | null,
+    updatedAt: Date,
     documentStatus: boolean
   ) {
-    this._id = _id;
-    this.name = name;
-    this.status = status;
-    this.createdUser = createdUser;
+    this.id = id;
+    this.title = title;
+    this.description = description;
+    this.rank = rank;
+    this.createdUserId = createdUserId;
     this.createdAt = createdAt;
-    this.updatedUser = updatedUser;
+    this.updatedUserId = updatedUserId;
     this.updatedAt = updatedAt;
     this.documentStatus = documentStatus;
   }

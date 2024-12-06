@@ -25,11 +25,11 @@ class DocumentExistsError extends Error {
   }
 }
 
-class AuthorizationError extends Error {
+class UnauthorizedError extends Error {
   statusCode: number;
   constructor(message: string) {
     super(message);
-    this.name = 'AuthorizationError';
+    this.name = 'UnauthorizedError';
     this.statusCode = 401;
   }
 }
@@ -77,7 +77,7 @@ const ERROR = {
   NotFoundError,
   BadRequestError,
   InvalidInputError,
-  AuthorizationError,
+  UnauthorizedError,
   ValidationError,
 };
 

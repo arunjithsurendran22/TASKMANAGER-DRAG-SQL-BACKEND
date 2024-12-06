@@ -7,7 +7,8 @@ const taskRouter = (router: Router) => {
   router.put("/update-task/:taskId", verifyUser, taskController.updateTask);
   router.get("/get-all-tasks", verifyUser, taskController.getAllTasks);
   router.delete("/delete-task/:taskId", verifyUser, taskController.deleteTask);
-  router.put("/update-status-task/:taskId", verifyUser, taskController.updateStatus);
+  router.put("/update-rank/:taskId", verifyUser, taskController.updateRank);
+
   
 
   return router;
